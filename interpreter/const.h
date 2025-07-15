@@ -32,7 +32,11 @@ struct Instruction {
 	string operand2;
 	
 };
+enum INTERNAL_FUNCTION{
+ MessageBoxA,
+ printf,
 
+};
 enum REGISTERS {
     rax=31,eax=31,ax=31,ah=31,al=31,
     rbx=32,ebx=32,bx=32,bl=32,bh=32,

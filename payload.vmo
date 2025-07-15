@@ -4,6 +4,8 @@ _Z7payloadv:
 4 34 0x5468697320697320564d2d7061796c6f6164
 3 33 0x0
 6 __imp_MessageBoxA
+4 33 0x746573740a
+6 __mingw_printf
 5 
 main:
 6 _Z7payloadv
