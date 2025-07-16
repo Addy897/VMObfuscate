@@ -32,8 +32,9 @@ struct Instruction {
 	string operand2;
 	
 };
+// TO CALL
 enum INTERNAL_FUNCTION{
- MessageBoxA,
+ MessageBoxA, 
  printf,
 
 };

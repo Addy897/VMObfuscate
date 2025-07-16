@@ -2,6 +2,8 @@ import subprocess
 import re
 from .rdata import RDATA
 from .constants import INTERNAL_FUNCTON, OPCODES, REGISTERS
+import random
+
 class Translator:
     def __init__(self) -> None:
         self.asm_dump=None
@@ -20,6 +22,7 @@ class Translator:
         else:
             raise ValueError("Empty binary file.")
     def transalte(self,file) -> None:
+        
         self.binary_file=file
         self.rdata=RDATA(file)
         self._disassemble()
@@ -91,13 +94,17 @@ class Translator:
         return asm_lines
 
     def write_to_file(self):
+        enc_key = random.randint(1, 255)
         if(self.binary_file):
             base_file=self.binary_file.removesuffix(".exe")
-            with open(f"{base_file}.vmo","w") as f:
+            with open(f"{base_file}.vmo","wb") as f:
+                f.write(bytes([enc_key]))
                 for key,value in self.translated_funcs.items():
-                    f.write(f"{key}:\n")
-                    for line in value.splitlines():
-                        f.write(f"{line}\n")
+                    data=bytearray((f"{key}:\n{value}").encode('utf-8'))
+                    for i in range(len(data)):
+                        data[i] ^= enc_key
+                    f.write(data)
+             
     def translate_func(self,func_name) -> None:
         if(self.rdata is None):
             raise Exception("No .rdata section found")

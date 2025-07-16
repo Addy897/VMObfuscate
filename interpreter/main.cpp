@@ -21,12 +21,24 @@ class VM{
     stringstream buffer;
     public:
     VM(string filename){
-        ifstream f(filename);
+		
+        ifstream f(filename,ios::binary);
         if (!f.is_open()) {
                 cerr << "Error opening the file!";
                 return;
         }
-        buffer<<f.rdbuf();
+
+		char key;
+		f.read(&key, 1);
+	
+		while (!f.eof()) {
+			char c;
+			f.get(c);
+			if (!f.eof()) {
+				c ^= key;
+				buffer.put(c);
+			}
+		}
 		f.close();
 		load_vmo();
     }
