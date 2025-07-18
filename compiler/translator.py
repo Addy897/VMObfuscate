@@ -1,7 +1,7 @@
 import subprocess
 import re
 from .rdata import RDATA
-from .constants import INTERNAL_FUNCTON, OPCODES, REGISTERS
+from .constants import INTERNAL_FUNCTON,InstructionToken
 import random
 
 class Translator:
@@ -12,6 +12,7 @@ class Translator:
         self.call_graph={}
         self.rdata=None
         self.translated_funcs={}
+        InstructionToken.randomize()
         self.opcodes_pattern=re.compile(r"^\s*(?P<addr>[0-9A-Fa-f]+):\s+(?P<bytes>(?:[0-9A-Fa-f]{2}\s+)+)(?P<mnemonic>\w+)\s*(?P<operands>.*)$")
     def _disassemble(self) -> None:
         if(self.binary_file is not None):
@@ -99,6 +100,8 @@ class Translator:
             base_file=self.binary_file.removesuffix(".exe")
             with open(f"{base_file}.vmo","wb") as f:
                 f.write(bytes([enc_key]))
+                for tok in InstructionToken.sorted_values():
+                    f.write(bytes([enc_key^tok]))
                 for key,value in self.translated_funcs.items():
                     data=bytearray((f"{key}:\n{value}").encode('utf-8'))
                     for i in range(len(data)):
@@ -117,7 +120,6 @@ class Translator:
             match=self.opcodes_pattern.match(asm_line)
             if(match):
                 current_opcode=match.group('mnemonic')
-
                 operands=match.group('operands')
                 operands=operands.split(",")
                 if(current_opcode=="call"):
@@ -146,9 +148,9 @@ class Translator:
                     qword_ptr_match=qword_ptr_pat.match(operands[1])
                     if(qword_ptr_match):
                         operands[1]=qword_ptr_match.group(1)
-                parsed_code+=str(OPCODES.get(current_opcode,current_opcode))
+                parsed_code+=str(InstructionToken.get(current_opcode,current_opcode))
                 for operand in operands:
-                    parsed_code+=" "+str(REGISTERS.get(operand,operand))
+                    parsed_code+=" "+str(InstructionToken.get(operand,operand))
                 parsed_code+="\n"
 
         self.translated_funcs[func_name]=parsed_code

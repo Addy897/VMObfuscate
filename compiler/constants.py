@@ -1,34 +1,64 @@
-OPCODES={
-    "push":0x1,
-    "pop":0x2,
-    "mov":0x3,
-    "lea":0x4,
-    "ret":0x5,
-    "call":0x6,
-    "cmp":0x7,
-    "test":0x8,
-    "jmp":0x9,
-    "jg":0xA,
-    "je":0xB,
-    "jne":0xC,
-    "jb":0xD,
-    "add":0xE,
-    "sub":0xF,
-    "mul":0x10,
-    "div":0x11
-}
-REGISTERS = {
-    "rax":31,"eax":31,"ax":31,"ah":31,"al":31,
-    "rbx":32,"ebx":32,"bx":32,"bl":32,"bh":32,
-    "rcx":33,"ecx":33,"cx":33,"cl":33,"ch":33,
-    "rdx":34,"edx":34,"dx":34,"dl":34,"dh":34,
-    "rsi":35,"esi":35,"si":35,"sil":35,
-    "rdi":36,"edi":36,"di":36,"dil":36,
-    "rsp":37,"esp":37,"sp":37,"spl":37,
-    "rbp":38,"ebp":38,"bp":38,"bpl":38,
-    "r8":  39,"r8d":39,"r8w":39,"r8b":39,
-    "r9":  40,"r9d":40,"r9w":40,"r9b":40,
-}
+import random
+from typing import Any
+class InstructionToken:
+    _instruction_tokens = {
+        "push": None, "pop": None, "mov": None, "lea": None, "ret": None,
+        "call": None, "cmp": None, "test": None, "jmp": None, "jg": None,
+        "je": None, "jne": None, "jb": None, "add": None, "sub": None,
+        "mul": None, "div": None, "rax": None, "rbx": None, "rcx": None,
+        "rdx": None, "rsi": None, "rdi": None, "rsp": None, "rbp": None,
+        "r8": None, "r9": None
+    }
+    _available_opcodes = list(range(1, 128))
+
+    _aliases = {
+        'ah': 'rax','al': 'rax','ax': 'rax', 'eax': 'rax',
+        'bh': 'rbx','bl': 'rbx','bx': 'rbx','ebx': 'rbx',
+        'ch': 'rcx','cl': 'rcx','cx': 'rcx','ecx': 'rcx',
+        'dh': 'rdx','dl': 'rdx','dx': 'rdx','edx': 'rdx',
+        'si': 'rsi','esi': 'rsi',
+        'di': 'rdi','edi': 'rdi',
+        'sp': 'rsp','esp': 'rsp',
+        'bp': 'rbp','ebp': 'rbp',
+        'r8b': 'r8','r8w': 'r8','r8d': 'r8',
+        'r9b': 'r9','r9w': 'r9','r9d': 'r9'
+    }
+    
+    @classmethod
+    def get(cls, key: str, default: Any = None) -> int | Any:
+        resolved = cls._aliases.get(key, key)
+        return cls._instruction_tokens.get(resolved, default)
+
+    @classmethod
+    def set(cls, key: str, value: int) -> None:
+        resolved = cls._aliases.get(key, key)
+        cls._instruction_tokens[resolved] = value
+
+    @classmethod
+    def keys(cls):
+        return cls._instruction_tokens.keys()
+
+    @classmethod
+    def items(cls):
+        return cls._instruction_tokens.items()
+
+    @classmethod
+    def __str__(cls):
+        return str(cls._instruction_tokens)
+    @classmethod
+    def __repr__(cls):
+        return str(cls._instruction_tokens)
+    
+    @classmethod
+    def randomize(cls):
+        random.shuffle(cls._available_opcodes)
+
+        for i,key in enumerate(cls._instruction_tokens.keys()):
+            cls._instruction_tokens[key]=cls._available_opcodes[i]
+    @classmethod
+    def sorted_values(cls) -> []:
+        return  [cls._instruction_tokens[i] for i in sorted(cls._instruction_tokens)]
+
 INTERNAL_FUNCTON={
  "__main":1
 }
