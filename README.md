@@ -15,6 +15,15 @@ main.h               # VM definitions and instruction handlers
 obfuscate.py         # Orchestrates compilation, translation, encryption, and execution
 payload.vmo          # Example byte-code payload
 ```
+## Features
+
+* **Custom Byte-Code Format**: Defines a tailored instruction set optimized for obfuscation and simplified VM execution.
+* **Automated Build Pipeline**: Single `obfuscate.py` script compiles source, translates to byte-code, encrypts, and executes.
+* **XOR Encryption**: Lightweight encryption of byte-code payload to prevent casual inspection.
+* **Fetch–Decode–Execute VM**: Implements a classic interpreter loop supporting control flow, arithmetic, and API stubs.
+* **Windows API Stubs**: Basic support for `printf` and `MessageBoxA` calls within the VM environment.
+* **Proof-of-Concept Clarity**: Minimal dependencies and clear separation of compiler, translator, and interpreter modules.
+
 
 ## Requirements
 
