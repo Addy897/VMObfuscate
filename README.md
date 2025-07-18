@@ -4,7 +4,7 @@ This proof-of-concept of a Windows-only VM-based obfuscation engine for x86-64 b
 # System Architecture Diagram
 The following diagram illustrates the end-to-end pipeline of this proof-of-concept:
 
-![System Architecture](Screenshot 2025-07-19 002246.png)
+![System Architecture](https://github.com/user-attachments/assets/25f7813b-51ab-478f-b199-770397bedc45)
 
 ## File Structure
 
