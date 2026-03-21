@@ -60,5 +60,5 @@ class InstructionToken:
         return  [cls._instruction_tokens[i] for i in sorted(cls._instruction_tokens)]
 
 INTERNAL_FUNCTON={
- "__main":1
+ "printf":1
 }

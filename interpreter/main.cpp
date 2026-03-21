@@ -65,6 +65,7 @@ void VM::load_vmo(){
 }
 void VM::handle_internal_function(INTERNAL_FUNCTION func) {
 	switch (func) {
+	#ifdef _WIN32
 		case INTERNAL_FUNCTION::CALL_MessageBoxA:{
 			int arg1,arg4;
 			string arg2,arg3;
@@ -89,13 +90,16 @@ void VM::handle_internal_function(INTERNAL_FUNCTION func) {
 
 			break;
 		}
+	#endif
 
 		case INTERNAL_FUNCTION::CALL_printf:{
 			string arg1;		
-			int rcx=tokens[TOKENS_TYPE::RCX];
-			arg1 = vars[rcx].get_str();
-			printf(arg1.c_str());
-			vars.erase(rcx);
+			int rdi=tokens[TOKENS_TYPE::RDI];
+			int rsi=tokens[TOKENS_TYPE::RSI];
+			arg1 = vars[rdi].get_str();
+			printf(arg1.c_str(),vars[rsi].get_int());
+			vars.erase(rsi);
+			vars.erase(rdi);
 			break;
 			
 		}

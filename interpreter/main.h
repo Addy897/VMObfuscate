@@ -1,6 +1,9 @@
 #include <string>
 #include <vector>
+
+#ifdef _WIN32
 #include<windows.h>
+#endif
 #include<iostream>
 #include<fstream>
 #include<sstream>
@@ -93,8 +96,11 @@ class VM {
 			 CALL_printf,
 		};
 		unordered_map<string, INTERNAL_FUNCTION> internal_function_map = {
+			#ifdef _WIN32
 			{"__imp_MessageBoxA", INTERNAL_FUNCTION::CALL_MessageBoxA},
+			#endif
 			{"__mingw_printf", INTERNAL_FUNCTION::CALL_printf},
+			{"printf", INTERNAL_FUNCTION::CALL_printf},
 		};
 		unordered_map<int, Value> vars;
 		vector<Instruction> code;
