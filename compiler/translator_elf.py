@@ -141,11 +141,23 @@ class Translator:
 					first,second=operands
 					rodata_addr_pat=re.compile(r"\[rip\+.+\]\s*#\s([0-9A-Fa-f]+)\s<.*\>$")
 					rodata_addr_match=rodata_addr_pat.match(second)
+					lea_pat2= re.compile(r"\[(?P<register>[a-z]{3,4})(?P<num>[\+\-]0x[a-fA-F0-9]+)\]")
+					lea_match2 = lea_pat2.match(second)
 					if(rodata_addr_match):
 						addr=hex(int(rodata_addr_match.group(1),16))
 						operands[1]="0x"+self.rodata.get(addr,"0")
+					elif(lea_match2 and lea_match2.group('register') !='rip'):
+						reg = lea_match2.group('register')
+						parsed_code += f"{InstructionToken.get('mov','mov')} {InstructionToken.get(first,first)} {InstructionToken.get(reg,reg)}\n" 
+						num = lea_match2.group('num')
+						func = 'add' if num[0] == '+' else 'sub'
+						parsed_code+= f"{InstructionToken.get(func,func)} {InstructionToken.get(first,first)} {num[1:]}\n"
+
+						continue	
+						
 					else:
-						print(f"rodata did not matched for {operands}")
+						print(f"rodata did not matched for {operands}")	
+						
 				elif(current_opcode=="mov"):
 					qword_ptr_pat=re.compile(r"QWORD PTR \[rip\+[0-9a-fA-F]+\]\s*#\s[0-9A-Fa-f]+\s<__imp_([A-Za-z]+)>")
 					qword_ptr_match=qword_ptr_pat.match(operands[1])

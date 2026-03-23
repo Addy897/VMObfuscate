@@ -257,6 +257,16 @@ void VM::run_function(const string& func_name) {
 				}
 				vm_stack.push(val);
 
+		}else if(inst.opcode==tokens[TOKENS_TYPE::ADD]){
+				var_id = stoi(inst.operand1);
+				int val;
+				if(inst.operand2.starts_with("0x")){
+					val = stoi(inst.operand2, nullptr, 16);
+				}else{
+					int var_id2 = stoi(inst.operand2);
+					val = vars[var_id2].get_int();	
+				}
+				vars[var_id] = vars[var_id].get_int() + val;
 		}else if(inst.opcode==tokens[TOKENS_TYPE::RET]){
 			if(vm_call_stack.empty())
 				return;

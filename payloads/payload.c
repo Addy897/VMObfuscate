@@ -3,7 +3,7 @@
 
 
 void add(int x){
-	printf("Factorial of 5: %d\n",x);
+	printf("FActorial not 5: %d\n",x+1);
 }
 int main() {
   	add(5); 
