@@ -45,7 +45,6 @@ int args[5] ={-1,-1,-1,-1,-1};
 	// printf args are  pushed in this order rdi,rsi,rdx,rcx,r8,r9
 	int rdi=tokens[TOKENS_TYPE::RDI];
 	arg1 = vars[rdi].get_str();
-	vars.erase(rdi);
 	args[0] = tokens[TOKENS_TYPE::RSI]; 
 	args[1] = tokens[TOKENS_TYPE::RDX]; 
 	args[2] = tokens[TOKENS_TYPE::RCX]; 
@@ -79,7 +78,6 @@ int args[5] ={-1,-1,-1,-1,-1};
 				Value val;  
 				if(!pop_stack){
 					val = vars[args[arg_p]];	
-					vars.erase(arg_p);
 					arg_p++;
 				}else{
 					if(vm_stack.empty()){
@@ -218,20 +216,30 @@ void VM::run_function(const string& func_name) {
 	}
 	
 	auto range = function_addr[func_name];
-	for (int i = range[0]; i <= range[1]; ++i) {
+	int i = range[0];
+	 while(true){
 		auto& inst = code[i];
+		i++;
 		int var_id;
 		if(inst.opcode==tokens[TOKENS_TYPE::CALL]){
 				if (internal_function_map.count(inst.operand1)) {
 					handle_internal_function(internal_function_map[inst.operand1]);
 				} else if (function_addr.count(inst.operand1)) {
-					run_function(inst.operand1);
+					range = function_addr[inst.operand1];
+					vm_call_stack.push(i);
+					i = range[0];
 				} else {
 					cerr << "[error] Unknown function: " << inst.operand1 << "\n";
 				}
 		}else if(inst.opcode==tokens[TOKENS_TYPE::MOV]){
 				var_id = stoi(inst.operand1);
-				Value val = stoi(inst.operand2, nullptr, 0);
+				Value val;
+				if(inst.operand2.starts_with("0x")){
+					val = stoi(inst.operand2, nullptr, 16);
+				}else{
+					int var_id2 = stoi(inst.operand2);
+					val = vars[var_id2];	
+				}
 				vars[var_id] = val;
 		}else if(inst.opcode==tokens[TOKENS_TYPE::LEA]){
 				var_id = stoi(inst.operand1);
@@ -250,7 +258,10 @@ void VM::run_function(const string& func_name) {
 				vm_stack.push(val);
 
 		}else if(inst.opcode==tokens[TOKENS_TYPE::RET]){
+			if(vm_call_stack.empty())
 				return;
+			i = vm_call_stack.top();
+			vm_call_stack.pop();
 		}else{
 			cout << "[unhandled opcode] " << static_cast<int>(inst.opcode)<< "\n";
 				

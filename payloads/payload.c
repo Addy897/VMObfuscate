@@ -1,10 +1,12 @@
 
 #include<stdio.h>
 
-int main() {
-   
-	printf("Hello, %s %d, %c, %d,%d, %d, %d %s %s \n","World",12,65,12,12,12,12,"TEST","224324324");
 
+void add(int x){
+	printf("Factorial of 5: %d\n",x);
+}
+int main() {
+  	add(5); 
 	return 0;
 }
 

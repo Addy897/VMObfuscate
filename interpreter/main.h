@@ -28,6 +28,7 @@ class VM {
 		};
 		array<int,TOKENS_LEN> tokens;
 		stack<Value> vm_stack;
+		stack<int> vm_call_stack;
 		struct Instruction {
 			unsigned char opcode;
 			string operand1;
@@ -45,6 +46,7 @@ class VM {
 			#endif
 			{"__mingw_printf", INTERNAL_FUNCTION::CALL_printf},
 			{"printf", INTERNAL_FUNCTION::CALL_printf},
+			{"puts", INTERNAL_FUNCTION::CALL_printf},
 		};
 		unordered_map<int, Value> vars;
 		vector<Instruction> code;

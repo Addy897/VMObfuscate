@@ -21,7 +21,8 @@ class InstructionToken:
         'sp': 'rsp','esp': 'rsp',
         'bp': 'rbp','ebp': 'rbp',
         'r8b': 'r8','r8w': 'r8','r8d': 'r8',
-        'r9b': 'r9','r9w': 'r9','r9d': 'r9'
+        'r9b': 'r9','r9w': 'r9','r9d': 'r9',
+	'imul':'mul'
     }
     
     @classmethod
@@ -60,5 +61,6 @@ class InstructionToken:
         return  [cls._instruction_tokens[i] for i in sorted(cls._instruction_tokens)]
 
 INTERNAL_FUNCTON={
- "printf":1
+ "printf":1,
+ "puts":1
 }
