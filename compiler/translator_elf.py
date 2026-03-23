@@ -3,7 +3,7 @@ import re
 from .rodata import RODATA
 from .constants import INTERNAL_FUNCTON,InstructionToken
 import random
-
+from pprint import pprint
 class Translator:
     def __init__(self) -> None:
         self.asm_dump=None
@@ -22,14 +22,15 @@ class Translator:
                 raise Exception(f"No file {self.binary_file} found.")
         else:
             raise ValueError("Empty binary file.")
-    def translate(self,file) -> None:
+    def translate(self,file,write_to_file=True) -> None:
         
         self.binary_file=file
         self.rodata=RODATA(file)
         self._disassemble()
         self._extract_funcs()
         self.translate_func("main")
-        self.write_to_file()
+        if(write_to_file):
+         self.write_to_file()
     def _is_user_func_name(self, name: str) -> bool:
         return bool(re.match(r"^(?:[A-Za-z]\w*|_Z\w+)$", name))
 
@@ -159,4 +160,4 @@ class Translator:
 
 if __name__ == '__main__':
 	translator = Translator();
-	translator.translate("../payload/payload")
+	translator.translate("../payloads/payload")

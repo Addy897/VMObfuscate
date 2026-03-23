@@ -7,7 +7,7 @@ from typing import Any
 class RODATA:
     def __init__(self,filename) -> None:
         self.rodata_array={}
-        self.rodata_pat=re.compile(r"\s*(?P<addr>[0-9A-Fa-f]+)\s(?P<data>([0-9A-Fa-f]{8}\s)*)")
+        self.rodata_pat=re.compile(r"\s*(?P<addr>[0-9A-Fa-f]+)\s(?P<data>([0-9A-Fa-f]{1,8}\s){1,4})")
         raw_rodata=subprocess.check_output(["objdump","-s","-j",".rodata",filename]).decode()
         current_base=None
         current_data=""
@@ -31,5 +31,5 @@ class RODATA:
     def get(self,key:str,fail:Any=None) -> str|Any:
         return self.rodata_array.get(key,fail)
 if __name__ =="__main__":
-    rodata=RODATA("../payload/payload")
+    rodata=RODATA("../payloads/payload")
     print(rodata.rodata_array)

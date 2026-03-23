@@ -111,6 +111,7 @@ class VM {
 		void load_vmo();
 		void handle_internal_function(INTERNAL_FUNCTION func);
 		void fromhex(string&,string&);
+		void vm_print();
 		void run_function(const string&);
 
     public:

@@ -29,6 +29,92 @@ VM::VM(string filename){
 	f.close();
 	load_vmo();
 }
+
+
+
+
+void VM::vm_print(){	
+string arg1;
+string final_string;
+// 6 cause rdi or rcx is arg1
+int args[5] ={-1,-1,-1,-1,-1};
+#ifdef _WIN32
+	// TODO: Complete for windows too
+	arg1;
+#elif defined(__linux__)
+	// printf args are  pushed in this order rdi,rsi,rdx,rcx,r8,r9
+	int rdi=tokens[TOKENS_TYPE::RDI];
+	arg1 = vars[rdi].get_str();
+	vars.erase(rdi);
+	args[0] = tokens[TOKENS_TYPE::RSI]; 
+	args[1] = tokens[TOKENS_TYPE::RDX]; 
+	args[2] = tokens[TOKENS_TYPE::RCX]; 
+	args[3] = tokens[TOKENS_TYPE::R8]; 
+	args[4] = tokens[TOKENS_TYPE::R9]; 
+
+#endif
+	bool format_specifier = false;
+
+
+	int arg_p = 0;
+	int args_len = 6;
+	int i =0;
+	int size = arg1.length();
+	while(i<size){
+		char c = arg1[i];
+		if(c == '%'){
+			if(i+1 < size){
+				i++;
+				c = arg1[i];
+				i++;
+				
+				if(arg_p >=args_len ||  args[arg_p] == -1 || vars.count(args[arg_p]) <=0){
+					final_string.push_back('%');
+					final_string.push_back(c);
+					continue;
+				}
+				Value val  = vars[args[arg_p]];	
+				vars.erase(arg_p);
+				arg_p++;
+				switch(c){
+					case 'd': {
+						final_string+=to_string(val.get_int());
+						continue;			
+					}
+					case 'c':{
+						final_string.push_back(val.get_int());
+						continue;
+					}
+					case 's': {
+						final_string+=val.get_str();
+						continue;			
+					}
+					default:{
+						final_string.push_back('%');
+						final_string.push_back(c);
+						continue;	
+					 } 
+				}
+			}
+		}
+	
+
+		i++;
+		final_string.push_back(c);
+
+
+	}
+
+	cout << final_string;
+
+	
+
+}
+
+
+
+
+
 void VM::load_vmo(){
 	regex rgx("(\\w+):");
 	string line;
@@ -93,13 +179,7 @@ void VM::handle_internal_function(INTERNAL_FUNCTION func) {
 	#endif
 
 		case INTERNAL_FUNCTION::CALL_printf:{
-			string arg1;		
-			int rdi=tokens[TOKENS_TYPE::RDI];
-			int rsi=tokens[TOKENS_TYPE::RSI];
-			arg1 = vars[rdi].get_str();
-			printf(arg1.c_str(),vars[rsi].get_int());
-			vars.erase(rsi);
-			vars.erase(rdi);
+			vm_print();	
 			break;
 			
 		}

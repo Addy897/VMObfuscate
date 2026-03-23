@@ -1,8 +1,9 @@
 from compiler.translator_elf import Translator
 import subprocess,os
+from pprint import pprint
 if __name__=="__main__":
     filename="payload"
-    command=f'''gcc -O1 -march=x86-64 -ffunction-sections -fomit-frame-pointer -Wall  -o {filename} payloads/{filename}.c'''
+    command=f'''gcc -O1 -march=x86-64  -fomit-frame-pointer -Wall  -o {filename} payloads/{filename}.c'''
     subprocess.run(command,shell=True)
     translator=Translator()
     translator.translate(f"{filename}")
