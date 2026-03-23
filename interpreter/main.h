@@ -1,6 +1,9 @@
 #include <string>
 #include <vector>
 
+#include"value.h"
+
+
 #ifdef _WIN32
 #include<windows.h>
 #endif
@@ -9,71 +12,11 @@
 #include<sstream>
 #include<regex>
 #include <unordered_map>
-#include <variant>
 #include<array>
+#include<stack>
 #define TOKENS_LEN 27
 using namespace std;
-enum class ValueType {
-    INT,
-    FLOAT,
-    BOOL,
-    STRING
-};
 
-struct Value {
-    ValueType type;
-    union {
-        int i;
-        float f;
-        bool b;
-        string* s;
-    };
-	Value() : type(ValueType::INT), i(0) {}
-    Value(int val) : type(ValueType::INT), i(val) {}
-    Value(float val) : type(ValueType::FLOAT), f(val) {}
-    Value(bool val) : type(ValueType::BOOL), b(val) {}
-    Value(const std::string& val) : type(ValueType::STRING), s(new std::string(val)) {}
-    ~Value() {
-        if (type == ValueType::STRING) {
-            delete s;
-        }
-    }
-	Value(const Value& other) : type(other.type) {
-		switch (type) {
-			case ValueType::INT: i = other.i; break;
-			case ValueType::FLOAT: f = other.f; break;
-			case ValueType::BOOL: b = other.b; break;
-			case ValueType::STRING: s = new std::string(*other.s); break;
-			default: i = 0; break;
-		}
-	}
-    Value& operator=(const Value& other) {
-        if (this != &other) {
-            if (type == ValueType::STRING) delete s;
-
-            type = other.type;
-            switch (type) {
-                case ValueType::INT: i = other.i; break;
-                case ValueType::FLOAT: f = other.f; break;
-                case ValueType::BOOL: b = other.b; break;
-                case ValueType::STRING: s = new std::string(*other.s); break;
-            }
-        }
-        return *this;
-    }
-	int get_int(){
-		return i;
-	}
-	bool get_bool(){
-			return b;
-	}
-	float get_float(){
-		return f;
-	}
-	string get_str(){
-			return *s;
-	}
-};
 
 class VM {
 	 private:
@@ -84,6 +27,7 @@ class VM {
 			RSP=24,SUB=25,TEST=26,
 		};
 		array<int,TOKENS_LEN> tokens;
+		stack<Value> vm_stack;
 		struct Instruction {
 			unsigned char opcode;
 			string operand1;

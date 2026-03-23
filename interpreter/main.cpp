@@ -57,9 +57,10 @@ int args[5] ={-1,-1,-1,-1,-1};
 
 
 	int arg_p = 0;
-	int args_len = 6;
+	int args_len = 5;
 	int i =0;
 	int size = arg1.length();
+	bool pop_stack = false;
 	while(i<size){
 		char c = arg1[i];
 		if(c == '%'){
@@ -67,15 +68,28 @@ int args[5] ={-1,-1,-1,-1,-1};
 				i++;
 				c = arg1[i];
 				i++;
-				
-				if(arg_p >=args_len ||  args[arg_p] == -1 || vars.count(args[arg_p]) <=0){
+				if(arg_p >=args_len){
+					pop_stack = true;
+				}  	
+				if(!pop_stack && ( args[arg_p] == -1 || vars.count(args[arg_p]) <=0)){
 					final_string.push_back('%');
 					final_string.push_back(c);
 					continue;
 				}
-				Value val  = vars[args[arg_p]];	
-				vars.erase(arg_p);
-				arg_p++;
+				Value val;  
+				if(!pop_stack){
+					val = vars[args[arg_p]];	
+					vars.erase(arg_p);
+					arg_p++;
+				}else{
+					if(vm_stack.empty()){
+						final_string.push_back('%');
+						final_string.push_back(c);
+						continue;
+					}
+					val = vm_stack.top();
+					vm_stack.pop();
+				}
 				switch(c){
 					case 'd': {
 						final_string+=to_string(val.get_int());
@@ -225,6 +239,16 @@ void VM::run_function(const string& func_name) {
 				string result;
 				fromhex(hexstr,result);
 				vars[var_id] = result;
+		}else if(inst.opcode == tokens[TOKENS_TYPE::PUSH]){
+				Value val;
+				if(inst.operand1.starts_with("0x")){
+					val = Value(stoi(inst.operand1,nullptr,16));
+				}else{
+					var_id = stoi(inst.operand1);
+					val = vars[var_id];
+				}
+				vm_stack.push(val);
+
 		}else if(inst.opcode==tokens[TOKENS_TYPE::RET]){
 				return;
 		}else{
