@@ -257,6 +257,65 @@ void VM::run_function(const string& func_name) {
 				}
 				vm_stack.push(val);
 
+		}else if(inst.opcode == tokens[TOKENS_TYPE::POP]){
+				if(vm_stack.empty()) continue;
+				Value val;
+				var_id = stoi(inst.operand1);
+				val = vm_stack.top();
+				vars[var_id]=val;
+				
+				vm_stack.pop();
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::CMP]){
+				var_id = stoi(inst.operand1);
+				int val;
+				if(inst.operand2.starts_with("0x")){
+					val = stoi(inst.operand2, nullptr, 16);
+					
+				}else{
+					int var_id2 = stoi(inst.operand2);
+					val = vars[var_id2].get_int();	
+				}
+				int res = vars[var_id].get_int() - val;
+				vm_flags = ((res < 0) << 1)|(res == 0);
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::JMP]){
+				
+				int loc = stoi(inst.operand1,nullptr,16);
+				i = range[0] + loc;
+				
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::JE]){
+				
+				int loc = stoi(inst.operand1,nullptr,16);
+				if(vm_flags & 1){
+				 	i = range[0] + loc;
+				}
+				
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::JNE]){
+				
+				int loc = stoi(inst.operand1,nullptr,16);
+				if((vm_flags & 1) == 0){
+				 	i = range[0] + loc;
+				}
+				
+		}else if(inst.opcode==tokens[TOKENS_TYPE::JG]){
+				
+				int loc = stoi(inst.operand1,nullptr,16);
+				if(vm_flags  == 0){
+					i = range[0] + loc;
+				}
+				
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::JB]){
+				
+				int loc = stoi(inst.operand1,nullptr,16);
+				if(vm_flags & (1<<1)){
+					i = range[0] + loc;
+				}
+				
+
 		}else if(inst.opcode==tokens[TOKENS_TYPE::ADD]){
 				var_id = stoi(inst.operand1);
 				int val;
@@ -267,6 +326,29 @@ void VM::run_function(const string& func_name) {
 					val = vars[var_id2].get_int();	
 				}
 				vars[var_id] = vars[var_id].get_int() + val;
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::SUB]){
+				var_id = stoi(inst.operand1);
+				int val;
+				if(inst.operand2.starts_with("0x")){
+					val = stoi(inst.operand2, nullptr, 16);
+				}else{
+					int var_id2 = stoi(inst.operand2);
+					val = vars[var_id2].get_int();	
+				}
+				vars[var_id] = vars[var_id].get_int() - val;
+
+		}else if(inst.opcode==tokens[TOKENS_TYPE::MUL]){
+				var_id = stoi(inst.operand1);
+				int val;
+				if(inst.operand2.starts_with("0x")){
+					val = stoi(inst.operand2, nullptr, 16);
+				}else{
+					int var_id2 = stoi(inst.operand2);
+					val = vars[var_id2].get_int();	
+				}
+				vars[var_id] = vars[var_id].get_int() * val;
+
 		}else if(inst.opcode==tokens[TOKENS_TYPE::RET]){
 			if(vm_call_stack.empty())
 				return;

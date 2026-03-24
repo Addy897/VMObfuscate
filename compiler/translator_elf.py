@@ -2,17 +2,19 @@ import subprocess
 import re
 from .rodata import RODATA
 from .constants import INTERNAL_FUNCTON,InstructionToken
-import random
+import random,bisect
 from pprint import pprint
 class Translator:
 	def __init__(self) -> None:
 		self.asm_dump=None
 		self.binary_file:str|None=None
 		self.funcs={}
-		self.call_graph={}
+		self.call_stack=[]
 		self.rodata=None
 		self.translated_funcs={}
 		InstructionToken.randomize()
+		self.distance={}
+		self.already_parsed = {}
 		self.opcodes_pattern = re.compile(r'^\s*(?P<addr>[0-9A-Fa-f]+):\s+(?P<bytes>(?:[0-9A-Fa-f]{2}\s+)+)\t(?P<mnemonic>\w+)\s*(?P<operands>.*)$')
 	def _disassemble(self) -> None:
 		if(self.binary_file is not None):
@@ -28,7 +30,7 @@ class Translator:
 		self.rodata=RODATA(file)
 		self._disassemble()
 		self._extract_funcs()
-		self.translate_func("main")
+		self.translate_func()
 		if(write_to_file):
 		 self.write_to_file()
 	def _is_user_func_name(self, name: str) -> bool:
@@ -110,20 +112,21 @@ class Translator:
 					for i in range(len(data)):
 						data[i] ^= enc_key
 					f.write(data)
-			 
-	def translate_func(self,func_name) -> None:
-		if(self.rodata is None):
-			raise Exception("No .rodata section found")
-		asm_lines=self.funcs[func_name]
-		asm_lines=self._strip_prologue(asm_lines)
-		asm_lines=self._strip_epilogue(asm_lines)
+
+
+	def parse_asm_lines(self,func_name:str,asm_lines:list[str]) -> list[str]:
+		current_line = -1
+		parsed_lines = []
+		self.already_parsed[func_name] = 1	
 		addr_func_pat=re.compile(r"(?P<addr>[0-9A-Fa-f]+)\s<(?P<name>[A-Za-z0-9]+)")
-		parsed_code=""
 		for asm_line in asm_lines:
+			current_line+=1
 			match=self.opcodes_pattern.match(asm_line)
 			if(match):
 				current_opcode=match.group('mnemonic')
 				operands=match.group('operands')
+				inst_addr = match.group("addr")
+				self.distance[inst_addr] = current_line
 				operands=operands.split(",")
 				if(current_opcode=="call"):
 					qword_ptr_pat=re.compile(r"QWORD PTR \[rip.*\]\s*#\s*[0-9A-Fa-fx]+\s+<([A-Za-z0-9_@]+)>")
@@ -131,8 +134,8 @@ class Translator:
 					call_func=addr_func_pat.match(operands[0])
 					if(call_func):
 						call_func_name=call_func.group("name")
-						if(not INTERNAL_FUNCTON.get(call_func_name) and call_func_name != func_name):
-							self.translate_func(call_func_name)
+						if(not INTERNAL_FUNCTON.get(call_func_name) and call_func_name != func_name and not self.already_parsed.get(call_func_name,0)):
+							self.call_stack.append(call_func_name)
 						operands[0]=call_func_name
 					elif(qword_ptr_match):
 						operands[0]=qword_ptr_match.group(1)
@@ -148,11 +151,11 @@ class Translator:
 						operands[1]="0x"+self.rodata.get(addr,"0")
 					elif(lea_match2 and lea_match2.group('register') !='rip'):
 						reg = lea_match2.group('register')
-						parsed_code += f"{InstructionToken.get('mov','mov')} {InstructionToken.get(first,first)} {InstructionToken.get(reg,reg)}\n" 
+						parsed_lines.append(f"mov {first} {reg}")
 						num = lea_match2.group('num')
 						func = 'add' if num[0] == '+' else 'sub'
-						parsed_code+= f"{InstructionToken.get(func,func)} {InstructionToken.get(first,first)} {num[1:]}\n"
-
+						parsed_lines.append(f"{func} {first} {num[1:]}")
+						current_line+=1
 						continue	
 						
 					else:
@@ -167,19 +170,63 @@ class Translator:
 					loc_pat = re.compile(r"(?P<addr>[0-9A-Fa-f]+)\s<(?P<name>[A-Za-z0-9]+)(?P<loc>[\+\-0x]+[a-fA-F0-9]+)>")
 					loc=loc_pat.match(operands[0])
 					if(loc):
-						operands[0]=loc.group("loc")
-	
-							
-				parsed_code+=str(InstructionToken.get(current_opcode,current_opcode))
-				if(current_opcode == "call"):
-					parsed_code += " " + operands[0]
-				else:
-					for operand in operands:
-						parsed_code+=" "+str(InstructionToken.get(operand,operand))
-				parsed_code+="\n"
+						operands[0] = loc.group("addr")
 
-		self.translated_funcs[func_name]=parsed_code
+				parsed_code=f"{current_opcode}"	
+				for operand in operands:
+					parsed_code+=" "+operand
+				parsed_lines.append(parsed_code)
+
+		return parsed_lines
+
+	def compute_relative_distances(self,stripped_asm_lines:list[str]) -> dict[str,int]:
+		current_distance = -1
+		distance = {}
+		for asm_line in stripped_asm_lines:
+			current_distance+=1
+			match=self.opcodes_pattern.match(asm_line)
+			if(match):
+				inst_addr = match.group("addr")
+				distance[inst_addr] = current_distance
+		return distance			 
+	def translate_func(self) -> None:
+		if(self.rodata is None):
+			raise Exception("No .rodata section found")
+		self.call_stack.append("main")
+		while(len(self.call_stack)>0):
+			func_name = self.call_stack.pop(-1)
+			asm_lines=self.funcs[func_name]
+			asm_lines=self._strip_prologue(asm_lines)
+			asm_lines=self._strip_epilogue(asm_lines)
+			parsed_lines = self.parse_asm_lines(func_name,asm_lines)
+			parsed_code = ""
+			for i in range(len(parsed_lines)):
+				line = parsed_lines[i]
+				ops = line.split(" ")
+				if(line[0] == 'j'):
+					jmp_loc = self.distance.get(ops[1],-1)
+					if(jmp_loc == -1):
+						arr = [int(x,16) for x in self.distance.keys()]
+						index = bisect.bisect_right(arr, int(ops[1],16))
+						if index < len(arr):
+							k = hex(arr[index]).replace("0x","")
+							jmp_loc = self.distance.get(k,-1)
+					ops[1] = jmp_loc
+					parsed_lines[i] = f"{ops[0]} {ops[1]}" 
+				parsed_code +=f"{InstructionToken.get(ops[0],ops[0])}"
+				if(ops[0] == "call"):
+					parsed_code +=f" {ops[1]}"
+				else:
+					for op in ops[1:]:	
+						parsed_code +=f" {InstructionToken.get(op,op)}"
+				parsed_code+="\n"
+			self.translated_funcs[func_name]=parsed_code
+			self.funcs[func_name]=parsed_lines
+		keys = list(self.funcs.keys())
+		for k in keys:
+			if(k not in self.translated_funcs):
+				self.funcs.pop(k)
 
 if __name__ == '__main__':
 	translator = Translator();
-	translator.translate("../payloads/payload")
+	translator.translate("../payloads/payload",False)

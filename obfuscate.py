@@ -7,7 +7,8 @@ if __name__=="__main__":
 	subprocess.run(command,shell=True)
 	translator=Translator()
 	translator.translate(f"{filename}")
-	pprint(translator.translated_funcs['add'])
+	pprint(translator.translated_funcs)
+	pprint(translator.funcs)
 	os.remove(f"{filename}")
 	subprocess.run("g++ -std=c++20 interpreter/main.cpp interpreter/value.cpp -o main -ggdb",shell=True);
 

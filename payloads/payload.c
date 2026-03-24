@@ -2,11 +2,16 @@
 #include<stdio.h>
 
 
-void add(int x){
-	printf("FActorial not 5: %d\n",x+1);
+int add(int x){
+	if(x < 2){
+		return 1;
+	}else{
+
+		return x*add(x-1);
+	}
 }
 int main() {
-  	add(5); 
+  	printf("Factorial of 5 is: %d\n",add(5)); 
 	return 0;
 }
 

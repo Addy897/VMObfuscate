@@ -13,6 +13,7 @@
 #include<regex>
 #include <unordered_map>
 #include<array>
+#include<stdint.h>
 #include<stack>
 #define TOKENS_LEN 27
 using namespace std;
@@ -29,6 +30,9 @@ class VM {
 		array<int,TOKENS_LEN> tokens;
 		stack<Value> vm_stack;
 		stack<int> vm_call_stack;
+		uint8_t vm_flags;
+		
+
 		struct Instruction {
 			unsigned char opcode;
 			string operand1;
