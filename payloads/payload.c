@@ -2,16 +2,20 @@
 #include<stdio.h>
 
 
-int add(int x){
+int fact(int x){
 	if(x < 2){
 		return 1;
 	}else{
 
-		return x*add(x-1);
+		return x*fact(x-1);
 	}
 }
 int main() {
-  	printf("Factorial of 5 is: %d\n",add(5)); 
+	int x = fact(10);
+	if(x<1000)
+  	printf("Factorial  is: %d\n",x); 
+	else
+  	printf("Factorial: %d\n",x); 
 	return 0;
 }
 

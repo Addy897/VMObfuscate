@@ -215,8 +215,9 @@ void VM::run_function(const string& func_name) {
 		return;
 	}
 	
-	auto range = function_addr[func_name];
-	int i = range[0];
+	int start = function_addr[func_name][0];
+	int i = start;
+	std::stack<int> start_stack;
 	 while(true){
 		auto& inst = code[i];
 		i++;
@@ -225,9 +226,10 @@ void VM::run_function(const string& func_name) {
 				if (internal_function_map.count(inst.operand1)) {
 					handle_internal_function(internal_function_map[inst.operand1]);
 				} else if (function_addr.count(inst.operand1)) {
-					range = function_addr[inst.operand1];
+					start_stack.push(start);
+					start = function_addr[inst.operand1][0];
 					vm_call_stack.push(i);
-					i = range[0];
+					i = start;
 				} else {
 					cerr << "[error] Unknown function: " << inst.operand1 << "\n";
 				}
@@ -282,14 +284,14 @@ void VM::run_function(const string& func_name) {
 		}else if(inst.opcode==tokens[TOKENS_TYPE::JMP]){
 				
 				int loc = stoi(inst.operand1,nullptr,16);
-				i = range[0] + loc;
+				i = start + loc;
 				
 
 		}else if(inst.opcode==tokens[TOKENS_TYPE::JE]){
 				
 				int loc = stoi(inst.operand1,nullptr,16);
 				if(vm_flags & 1){
-				 	i = range[0] + loc;
+				 	i = start + loc;
 				}
 				
 
@@ -297,14 +299,14 @@ void VM::run_function(const string& func_name) {
 				
 				int loc = stoi(inst.operand1,nullptr,16);
 				if((vm_flags & 1) == 0){
-				 	i = range[0] + loc;
+				 	i = start + loc;
 				}
 				
 		}else if(inst.opcode==tokens[TOKENS_TYPE::JG]){
 				
 				int loc = stoi(inst.operand1,nullptr,16);
 				if(vm_flags  == 0){
-					i = range[0] + loc;
+					i = start + loc;
 				}
 				
 
@@ -312,7 +314,7 @@ void VM::run_function(const string& func_name) {
 				
 				int loc = stoi(inst.operand1,nullptr,16);
 				if(vm_flags & (1<<1)){
-					i = range[0] + loc;
+					i = start + loc;
 				}
 				
 
@@ -352,6 +354,10 @@ void VM::run_function(const string& func_name) {
 		}else if(inst.opcode==tokens[TOKENS_TYPE::RET]){
 			if(vm_call_stack.empty())
 				return;
+			if(!start_stack.empty()){
+				start = start_stack.top();
+				start_stack.pop();
+			}
 			i = vm_call_stack.top();
 			vm_call_stack.pop();
 		}else{

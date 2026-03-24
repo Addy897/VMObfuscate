@@ -211,7 +211,7 @@ class Translator:
 						if index < len(arr):
 							k = hex(arr[index]).replace("0x","")
 							jmp_loc = self.distance.get(k,-1)
-					ops[1] = jmp_loc
+					ops[1] = hex(jmp_loc)
 					parsed_lines[i] = f"{ops[0]} {ops[1]}" 
 				parsed_code +=f"{InstructionToken.get(ops[0],ops[0])}"
 				if(ops[0] == "call"):
