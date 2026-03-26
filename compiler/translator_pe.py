@@ -1,6 +1,6 @@
 import subprocess
 import re
-from .rodata import RODATA
+from .rdata import RDATA
 from .constants import INTERNAL_FUNCTON,InstructionToken
 import random,bisect
 from pprint import pprint
@@ -10,7 +10,7 @@ class Translator:
         self.binary_file:str|None=None
         self.funcs={}
         self.call_stack=[]
-        self.rodata:RODATA|None=None
+        self.rdata=None
         self.translated_funcs={}
         InstructionToken.randomize()
         self.distance={}
@@ -24,14 +24,14 @@ class Translator:
                 raise Exception(f"No file {self.binary_file} found.")
         else:
             raise ValueError("Empty binary file.")
-    def translate(self,file,write_to_file=True) -> None:
+    def translate(self,file,write=True) -> None:
         
         self.binary_file=file
-        self.rodata=RODATA(file)
+        self.rodata=RDATA(file)
         self._disassemble()
         self._extract_funcs()
         self.translate_func()
-        if(write_to_file):
+        if(write):
          self.write_to_file()
     def _is_user_func_name(self, name: str) -> bool:
         return bool(re.match(r"^(?:[A-Za-z]\w*|_Z\w+)$", name))
@@ -65,19 +65,21 @@ class Translator:
                 self.funcs[current] = lines
     def _strip_prologue(self,asm_lines):
         prologue=[("sub","rsp,")]
-        found_prologue=True
-
-        for i,asm_line in enumerate(asm_lines[:1]):
+        found_prologue=False
+        k =0
+        for i,asm_line in enumerate(asm_lines):
             match=self.opcodes_pattern.match(asm_line)
             if(match):
                 current_opcode=match.group('mnemonic')
                 operands=match.group('operands').replace(" ","")
-                if(current_opcode!=prologue[i][0] or not operands.startswith(prologue[i][1])):
-                    found_prologue=False
+                if(current_opcode==prologue[0][0] and operands.startswith(prologue[0][1])):
+                    found_prologue=True
+                    k=i
+                    break
             else:
                 break
         if(found_prologue):
-            asm_lines=asm_lines[1:]
+            asm_lines=asm_lines[:k]+asm_lines[k+1:]
         return asm_lines
     def _strip_epilogue(self,asm_lines):
         epilogue=[("add","rsp,")]
@@ -89,7 +91,7 @@ class Translator:
             if(match):
                 current_opcode=match.group('mnemonic')
                 operands=match.group('operands').replace(" ","")
-                if(current_opcode==epilogue[0][0] or operands.startswith(epilogue[0][1])):
+                if(current_opcode==epilogue[0][0] and operands.startswith(epilogue[0][1])):
                     found_epilogue=True
                     k=i
                     break
@@ -115,12 +117,11 @@ class Translator:
 
 
     def parse_asm_lines(self,func_name:str,asm_lines:list[str]) -> list[str]:
-        current_line = -1
+        current_line = 0
         parsed_lines = []
         self.already_parsed[func_name] = 1    
-        addr_func_pat=re.compile(r"(?P<addr>[0-9A-Fa-f]+)\s<(?P<name>[A-Za-z0-9]+)")
+        addr_func_pat=re.compile(r"(?P<addr>[0-9A-Fa-f]+)\s<(?:__mingw_)?(?P<name>[A-Za-z0-9]+)")
         for asm_line in asm_lines:
-            current_line+=1
             match=self.opcodes_pattern.match(asm_line)
             if(match):
                 current_opcode=match.group('mnemonic')
@@ -139,15 +140,16 @@ class Translator:
                         operands[0]=call_func_name
                     elif(qword_ptr_match):
                         operands[0]=qword_ptr_match.group(1)
-
+                    else:
+                        continue
                 elif(current_opcode=='lea'):
                     first,second=operands
-                    rodata_addr_pat=re.compile(r"\[rip\+.+\]\s*#\s([0-9A-Fa-f]+)\s<.*\>$")
-                    rodata_addr_match=rodata_addr_pat.match(second)
+                    rdata_addr_pat=re.compile(r"\[rip\+.+\]\s*#\s([0-9A-Fa-f]+)\s<.*\>$")
+                    rdata_addr_match=rdata_addr_pat.match(second)
                     lea_pat2= re.compile(r"\[(?P<register>[a-z]{3,4})(?P<num>[\+\-]0x[a-fA-F0-9]+)\]")
                     lea_match2 = lea_pat2.match(second)
-                    if(rodata_addr_match):
-                        addr=hex(int(rodata_addr_match.group(1),16))
+                    if(rdata_addr_match):
+                        addr=hex(int(rdata_addr_match.group(1),16))
                         operands[1]="0x"+self.rodata.get(addr,"0")
                     elif(lea_match2 and lea_match2.group('register') !='rip'):
                         reg = lea_match2.group('register')
@@ -162,10 +164,16 @@ class Translator:
                         print(f"rodata did not matched for {operands}")    
                         
                 elif(current_opcode=="mov"):
-                    qword_ptr_pat=re.compile(r"QWORD PTR \[rip\+[0-9a-fA-F]+\]\s*#\s[0-9A-Fa-f]+\s<__imp_([A-Za-z]+)>")
-                    qword_ptr_match=qword_ptr_pat.match(operands[1])
-                    if(qword_ptr_match):
-                        operands[1]=qword_ptr_match.group(1)
+                    word_ptr_pat=re.compile(r".WORD PTR \[rsp\+0x[0-9a-fA-F]+\]")
+                    word_ptr_push_match=word_ptr_pat.match(operands[0])
+                    word_ptr_pop_match=word_ptr_pat.match(operands[1])
+                    if(word_ptr_push_match):
+                        operands[0]=operands[1]
+                        operands.pop(1)
+                        current_opcode = "push"
+                    elif(word_ptr_pop_match):
+                        current_opcode = "pop"
+                        operands.pop(1)
                 elif(current_opcode[0] == "j"):
                     loc_pat = re.compile(r"(?P<addr>[0-9A-Fa-f]+)\s<(?P<name>[A-Za-z0-9]+)(?P<loc>[\+\-0x]+[a-fA-F0-9]+)>")
                     loc=loc_pat.match(operands[0])
@@ -176,19 +184,15 @@ class Translator:
                 for operand in operands:
                     parsed_code+=" "+operand
                 parsed_lines.append(parsed_code)
+                current_line+=1
 
         return parsed_lines
-
-    def compute_relative_distances(self,stripped_asm_lines:list[str]) -> dict[str,int]:
-        current_distance = -1
-        distance = {}
-        for asm_line in stripped_asm_lines:
-            current_distance+=1
-            match=self.opcodes_pattern.match(asm_line)
-            if(match):
-                inst_addr = match.group("addr")
-                distance[inst_addr] = current_distance
-        return distance             
+    def bs(self,arr, x):
+        i = bisect.bisect_right(arr, x)
+        if i != len(arr):
+            return i 
+        else:
+            return -1
     def translate_func(self) -> None:
         if(self.rodata is None):
             raise Exception("No .rodata section found")
@@ -206,7 +210,7 @@ class Translator:
                 if(line[0] == 'j'):
                     jmp_loc = self.distance.get(ops[1],-1)
                     if(jmp_loc == -1):
-                        arr = [int(x,16) for x in self.distance.keys()]
+                        arr = sorted([int(x,16) for x in self.distance.keys()])
                         index = bisect.bisect_right(arr, int(ops[1],16))
                         if index < len(arr):
                             k = hex(arr[index]).replace("0x","")
