@@ -1,5 +1,9 @@
-from compiler.translator_pe import Translator
+
 import subprocess,os
+if os.name =="nt":
+    from compiler.translator_pe import Translator
+else:
+    from compiler.translator_elf import Translator
 from pprint import pprint
 if __name__=="__main__":
     ext = ".exe" if os.name =="nt" else ""
@@ -8,8 +12,6 @@ if __name__=="__main__":
     subprocess.run(command,shell=True)
     translator=Translator()
     translator.translate(f"{filename}{ext}")
-    pprint(translator.translated_funcs)
-    pprint(translator.funcs)
-    #os.remove(f"{filename}{ext}")
+    os.remove(f"{filename}{ext}")
     subprocess.run(f"g++ -std=c++20 interpreter/main.cpp interpreter/value.cpp -o main{ext} -ggdb",shell=True);
 

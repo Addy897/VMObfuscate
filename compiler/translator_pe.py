@@ -27,7 +27,7 @@ class Translator:
     def translate(self,file,write=True) -> None:
         
         self.binary_file=file
-        self.rodata=RDATA(file)
+        self.rdata=RDATA(file)
         self._disassemble()
         self._extract_funcs()
         self.translate_func()
@@ -150,7 +150,7 @@ class Translator:
                     lea_match2 = lea_pat2.match(second)
                     if(rdata_addr_match):
                         addr=hex(int(rdata_addr_match.group(1),16))
-                        operands[1]="0x"+self.rodata.get(addr,"0")
+                        operands[1]="0x"+self.rdata.get(addr,"0")
                     elif(lea_match2 and lea_match2.group('register') !='rip'):
                         reg = lea_match2.group('register')
                         parsed_lines.append(f"mov {first} {reg}")
@@ -161,7 +161,7 @@ class Translator:
                         continue    
                         
                     else:
-                        print(f"rodata did not matched for {operands}")    
+                        print(f"rdata did not matched for {operands}")    
                         
                 elif(current_opcode=="mov"):
                     word_ptr_pat=re.compile(r".WORD PTR \[rsp\+0x[0-9a-fA-F]+\]")
@@ -187,15 +187,9 @@ class Translator:
                 current_line+=1
 
         return parsed_lines
-    def bs(self,arr, x):
-        i = bisect.bisect_right(arr, x)
-        if i != len(arr):
-            return i 
-        else:
-            return -1
     def translate_func(self) -> None:
-        if(self.rodata is None):
-            raise Exception("No .rodata section found")
+        if(self.rdata is None):
+            raise Exception("No .rdata section found")
         self.call_stack.append("main")
         while(len(self.call_stack)>0):
             func_name = self.call_stack.pop(-1)
